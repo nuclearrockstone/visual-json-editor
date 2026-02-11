@@ -488,7 +488,11 @@
     <main class="container">
       <div class="panel panel-left">
           <h2>JSON Input</h2>
-          <textarea id="json-input" placeholder="Paste your JSON here...">
+          <div style="position: relative;">
+              <button id="copy-json-btn" style="position: absolute; top: 0.5rem; right: 0.5rem; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer;">Copy</button>
+              <div id="json-editor-container" style="position: relative;">
+                  <div id="folding-buttons" style="position: absolute; left: 0; top: 0; bottom: 0; width: 1.5rem; background-color: #f1f3f6; border-right: 1px solid #d0d7de; padding-top: 0.75rem;"></div>
+                  <textarea id="json-input" placeholder="Paste your JSON here..." style="background-color: var(--input-bg); color: var(--text-color-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem 0.75rem 0.75rem 2rem; font-family: 'SF Mono', 'Courier New', Courier, monospace; font-size: 0.9rem; resize: none; min-height: 200px; overflow-y: auto;">
 {
   "name": "John Doe",
   "age": 29,
@@ -504,8 +508,10 @@
     "company-3": "Company 3"
   }
 }</textarea>
+              </div>
+          </div>
           <div class="panel-controls">
-              <button id="generate-form-btn">Generate Form</button>
+              <button id="generate-form-btn" style="background-color: var(--primary-color); color: white; border: none; border-radius: 6px; padding: 0.6rem 1.2rem; font-size: 0.9rem; cursor: pointer; transition: background-color 0.2s ease-in-out, box-shadow: var(--shadow-sm); font-weight: 500; line-height: 1.25;">&#8594;</button>
               <button id="beautify-btn" class="btn-secondary">Beautify</button>
               <button id="validate-btn" class="btn-secondary">Validate</button>
           </div>
