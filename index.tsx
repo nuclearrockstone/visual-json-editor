@@ -1,5 +1,7 @@
 // DOM Elements
 const jsonInput = document.getElementById('json-input') as HTMLTextAreaElement;
+const copyJsonBtn = document.getElementById('copy-json-btn') as HTMLButtonElement;
+const foldingButtons = document.getElementById('folding-buttons') as HTMLDivElement;
 const generateFormBtn = document.getElementById('generate-form-btn') as HTMLButtonElement;
 const beautifyBtn = document.getElementById('beautify-btn') as HTMLButtonElement;
 const validateBtn = document.getElementById('validate-btn') as HTMLButtonElement;
@@ -8,6 +10,15 @@ const visualEditor = document.getElementById('visual-editor') as HTMLDivElement;
 const inputMessageArea = document.getElementById('input-message-area') as HTMLDivElement;
 const outputControlsArea = document.getElementById('output-controls-area') as HTMLDivElement;
 const visualEditorPlaceholder = document.getElementById('visual-editor-placeholder') as HTMLParagraphElement;
+
+// Folding state
+interface FoldableRegion {
+    startLine: number;
+    endLine: number;
+    folded: boolean;
+}
+
+let foldableRegions: FoldableRegion[] = [];
 
 // Modal Elements
 const modal = document.getElementById('info-modal') as HTMLDivElement;
@@ -449,7 +460,7 @@ generateFormBtn.addEventListener('click', () => {
     outputControlsArea.innerHTML = '';
 
     try {
-        const json = JSON.parse(jsonInput.value);
+        const json = JSON.parse(jsonInput.value || '');
         if (visualEditorPlaceholder) visualEditorPlaceholder.style.display = 'none';
         
         const rootType = Array.isArray(json) ? 'array' : typeof json;
@@ -517,7 +528,7 @@ generateFormBtn.addEventListener('click', () => {
 /** Handles beautifying the JSON in the input textarea. */
 beautifyBtn.addEventListener('click', () => {
     try {
-        const uglyJson = jsonInput.value;
+        const uglyJson = jsonInput.value || '';
         const parsedJson = JSON.parse(uglyJson);
         const prettyJson = JSON.stringify(parsedJson, null, 2);
         jsonInput.value = prettyJson;
@@ -530,7 +541,7 @@ beautifyBtn.addEventListener('click', () => {
 /** Handles validating the JSON in the input textarea. */
 validateBtn.addEventListener('click', () => {
      try {
-        JSON.parse(jsonInput.value);
+        JSON.parse(jsonInput.value || '');
         showMessage('JSON is valid!', 'success');
     } catch (error: any) {
         showMessage(`Invalid JSON: ${error.message}`, 'error');
@@ -573,7 +584,111 @@ const handleDownload = () => {
     }
 };
 
+// Copy JSON button functionality
+copyJsonBtn.addEventListener('click', () => {
+    const jsonText = jsonInput.value || '';
+    navigator.clipboard.writeText(jsonText).then(() => {
+        showMessage('JSON copied to clipboard!', 'success');
+    }).catch(err => {
+        showMessage('Failed to copy JSON: ' + err, 'error');
+    });
+});
+
+// Update folding when JSON changes
+jsonInput.addEventListener('input', () => {
+    initCodeFolding();
+});
+
+// Code selection and highlighting functionality
+jsonInput.addEventListener('mouseup', () => {
+    const selection = window.getSelection();
+    if (!selection || selection.toString().trim() === '') return;
+    
+    const selectedText = selection.toString().trim();
+    // Try to extract the key name from the selection
+    const keyMatch = selectedText.match(/"([^"]+)"/);
+    if (keyMatch) {
+        const keyName = keyMatch[1];
+        highlightVisualEditorField(keyName);
+    }
+});
+
+const highlightVisualEditorField = (keyName: string) => {
+    // Remove existing highlights
+    const highlightedFields = document.querySelectorAll('.highlighted-field');
+    highlightedFields.forEach(field => {
+        field.classList.remove('highlighted-field');
+    });
+    
+    // Find and highlight the corresponding field
+    const keyInputs = document.querySelectorAll('.key-input');
+    keyInputs.forEach(input => {
+        if ((input as HTMLInputElement).value === keyName) {
+            const propertyDiv = input.closest('.property');
+            if (propertyDiv) {
+                propertyDiv.style.backgroundColor = '#eefbf1';
+                propertyDiv.style.border = '1px solid #8ce6a3';
+                propertyDiv.classList.add('highlighted-field');
+                // Scroll to the highlighted field
+                propertyDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+};
+
+// Initialize code folding
+const initCodeFolding = () => {
+    const text = jsonInput.value || '';
+    const lines = text.split('\n');
+    foldableRegions = [];
+    foldingButtons.innerHTML = '';
+    
+    const stack: { line: number, char: string }[] = [];
+    
+    lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.endsWith('{') || trimmedLine.endsWith('[')) {
+            stack.push({ line: index + 1, char: trimmedLine.endsWith('{') ? '{' : '[' });
+        } else if (trimmedLine.endsWith('}') || trimmedLine.endsWith(']')) {
+            if (stack.length > 0) {
+                const start = stack.pop()!;
+                if ((start.char === '{' && trimmedLine.endsWith('}')) || (start.char === '[' && trimmedLine.endsWith(']'))) {
+                    foldableRegions.push({ startLine: start.line, endLine: index + 1, folded: false });
+                }
+            }
+        }
+    });
+    
+    // Create folding buttons
+    foldableRegions.forEach(region => {
+        const foldBtn = document.createElement('button');
+        foldBtn.textContent = '-';
+        foldBtn.style.position = 'absolute';
+        foldBtn.style.left = '0.25rem';
+        foldBtn.style.top = `${(region.startLine - 1) * 1.5 + 0.75}rem`;
+        foldBtn.style.background = 'none';
+        foldBtn.style.border = 'none';
+        foldBtn.style.cursor = 'pointer';
+        foldBtn.style.color = 'var(--primary-color)';
+        foldBtn.style.fontWeight = 'bold';
+        foldBtn.style.fontSize = '0.8rem';
+        
+        foldBtn.addEventListener('click', () => {
+            toggleFolding(region);
+        });
+        
+        foldingButtons.appendChild(foldBtn);
+    });
+};
+
+const toggleFolding = (region: FoldableRegion) => {
+    region.folded = !region.folded;
+    // Implement folding logic here
+    console.log('Toggle folding for region:', region);
+};
+
 // Auto-generate form on load with the sample JSON
 document.addEventListener('DOMContentLoaded', () => {
+    initCodeFolding();
     generateFormBtn.click();
 });
